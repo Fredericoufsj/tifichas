@@ -1,8 +1,7 @@
-// src/pages/ReviewTopicPage.jsx
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 
 const ReviewTopicPage = () => {
   const { cargoId, materiaId } = useParams();
@@ -19,8 +18,9 @@ const ReviewTopicPage = () => {
     const topicsList = topicsSnapshot.docs.map((doc) => ({
       id: doc.id,
       title: doc.data().title || "Tópico sem título",
-      totalQuestions: doc.data().totalQuestions || 0, // Assume o valor armazenado no banco
+      totalQuestions: doc.data().totalQuestions || 0, // Usa o valor direto do Firestore
     }));
+    console.log("Topics fetched:", topicsList); // Verifica o totalQuestions de cada cargo
 
     setTopics(topicsList);
   };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { doc, updateDoc, getDocs, getDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, getDocs, getDoc, collection, increment } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 
 const ReviewQuestionPage = () => {
@@ -31,6 +31,7 @@ const ReviewQuestionPage = () => {
       id: doc.id,
       ...doc.data(),
     }));
+    console.log("Fetched questions:", questionsList); // Verifica as questões carregadas
     setQuestions(questionsList);
   };
 
@@ -41,6 +42,7 @@ const ReviewQuestionPage = () => {
       const data = topicSnapshot.data();
       const calculatedProgress = (data.completedQuestions / data.totalQuestions) * 100;
       setProgress(calculatedProgress);
+      console.log("Progress fetched:", calculatedProgress); // Verifica o progresso inicial
     }
   };
 
@@ -58,16 +60,16 @@ const ReviewQuestionPage = () => {
     // Atualiza o progresso do tópico e incrementa o contador de questões concluídas
     const topicDocRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
     const topicSnapshot = await getDoc(topicDocRef);
-    if (topicSnapshot.exists() && !questions[currentIndex].reviewed) { 
+    if (topicSnapshot.exists() && !questions[currentIndex].reviewed) {
       const data = topicSnapshot.data();
       const newCompletedQuestions = (data.completedQuestions || 0) + 1;
       await updateDoc(topicDocRef, {
-        completedQuestions: newCompletedQuestions,
+        completedQuestions: increment(1),
       });
+      console.log("Incremented completedQuestions:", newCompletedQuestions); // Verifica o incremento
       setProgress((newCompletedQuestions / data.totalQuestions) * 100);
     }
 
-    // Avança para a próxima questão ou mostra a mensagem de conclusão
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -81,7 +83,6 @@ const ReviewQuestionPage = () => {
     <div className="flex flex-col items-center p-6">
       <h2 className="text-2xl font-bold mb-4">Revisão de Questões</h2>
 
-      {/* Barra de Progresso usando Tailwind */}
       <div className="w-full max-w-xl h-4 bg-gray-200 rounded-full overflow-hidden mb-4">
         <div
           className="h-full bg-blue-500 transition-all duration-300"
@@ -93,13 +94,11 @@ const ReviewQuestionPage = () => {
         </div>
       </div>
 
-      {/* Cartão de Questão */}
       <FlashCard
         title={questions[currentIndex].front}
         description={questions[currentIndex].verso}
       />
 
-      {/* Botões de Revisão */}
       <div className="flex space-x-4 mt-6">
         <button onClick={() => handleReviewResponse(1)} className="bg-red-500 text-white p-2 rounded">
           Não Lembrei (+1 dia)

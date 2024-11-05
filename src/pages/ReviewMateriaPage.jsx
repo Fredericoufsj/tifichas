@@ -1,4 +1,3 @@
-// src/pages/ReviewMateriaPage.jsx
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebaseConfig";
@@ -13,16 +12,16 @@ const ReviewMateriaPage = () => {
   }, [cargoId]);
 
   const fetchMaterias = async () => {
-    // Acessa diretamente a coleção de matérias e utiliza o campo "totalQuestions" armazenado
     const materiasCollection = collection(db, "cargos", cargoId, "subjects");
     const materiasSnapshot = await getDocs(materiasCollection);
 
     const materiasList = materiasSnapshot.docs.map((doc) => {
-      const materiaData = doc.data();
+      const data = doc.data();
+      console.log(`Materia ID: ${doc.id}, totalQuestions: ${data.totalQuestions}`); // Log para cada matéria
       return {
         id: doc.id,
-        subject: materiaData.subject || "Matéria sem título",
-        totalQuestions: materiaData.totalQuestions || 0, // Assume que o campo "totalQuestions" já foi calculado e armazenado
+        subject: data.subject || "Matéria sem título",
+        totalQuestions: data.totalQuestions || 0, // Verifica e mostra o valor carregado
       };
     });
 

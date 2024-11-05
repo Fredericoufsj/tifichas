@@ -1,8 +1,7 @@
-// src/pages/TopicPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 import AddQuestionForm from "../components/AddQuestionForm";
 
@@ -35,9 +34,63 @@ const TopicPage = () => {
     setQuestions(questionsList);
   };
 
+  // Função para atualizar o total de questões no tópico
+  const updateTopicTotalQuestions = async () => {
+    const questionsCollection = collection(
+      db,
+      "cargos",
+      cargoId,
+      "subjects",
+      materiaId,
+      "topics",
+      topicoId,
+      "questions"
+    );
+    const questionsSnapshot = await getDocs(questionsCollection);
+    const totalQuestions = questionsSnapshot.size;
+
+    const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
+    await updateDoc(topicRef, { totalQuestions });
+
+    // Após atualizar o tópico, atualize a matéria
+    await updateMateriaTotalQuestions();
+  };
+
+  // Função para atualizar o total de questões na matéria
+  const updateMateriaTotalQuestions = async () => {
+    const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
+    const topicsSnapshot = await getDocs(topicsCollection);
+
+    let totalQuestions = 0;
+    topicsSnapshot.forEach((doc) => {
+      totalQuestions += doc.data().totalQuestions || 0;
+    });
+
+    const materiaRef = doc(db, "cargos", cargoId, "subjects", materiaId);
+    await updateDoc(materiaRef, { totalQuestions });
+
+    // Após atualizar a matéria, atualize o cargo
+    await updateCargoTotalQuestions();
+  };
+
+  // Função para atualizar o total de questões no cargo
+  const updateCargoTotalQuestions = async () => {
+    const materiasCollection = collection(db, "cargos", cargoId, "subjects");
+    const materiasSnapshot = await getDocs(materiasCollection);
+
+    let totalQuestions = 0;
+    materiasSnapshot.forEach((doc) => {
+      totalQuestions += doc.data().totalQuestions || 0;
+    });
+
+    const cargoRef = doc(db, "cargos", cargoId);
+    await updateDoc(cargoRef, { totalQuestions });
+  };
+
   // Atualizar a lista de perguntas após adicionar uma nova
   const handleQuestionAdded = () => {
     fetchQuestions(); // Atualiza a lista de perguntas
+    updateTopicTotalQuestions(); // Atualiza o total de questões no tópico e propaga
     setShowForm(false); // Fecha o formulário
   };
 

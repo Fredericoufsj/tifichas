@@ -1,4 +1,3 @@
-// src/pages/ReviewPage.jsx
 import { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
@@ -15,11 +14,15 @@ const ReviewPage = () => {
     const cargosCollection = collection(db, "cargos");
     const cargosSnapshot = await getDocs(cargosCollection);
 
-    const cargosList = cargosSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      title: doc.data().title || "Cargo sem título",
-      totalQuestions: doc.data().totalQuestions || 0, // Assume que o total já foi calculado no banco
-    }));
+    const cargosList = cargosSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      console.log(`Cargo ID: ${doc.id}, totalQuestions: ${data.totalQuestions}`); // Log para cada cargo
+      return {
+        id: doc.id,
+        title: data.title || "Cargo sem título",
+        totalQuestions: data.totalQuestions || 0, // Verifica e mostra o valor carregado
+      };
+    });
 
     setCargos(cargosList);
   };
