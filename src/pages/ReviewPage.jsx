@@ -14,15 +14,12 @@ const ReviewPage = () => {
     const cargosCollection = collection(db, "cargos");
     const cargosSnapshot = await getDocs(cargosCollection);
 
-    const cargosList = cargosSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      console.log(`Cargo ID: ${doc.id}, totalQuestions: ${data.totalQuestions}`); // Log para cada cargo
-      return {
-        id: doc.id,
-        title: data.title || "Cargo sem título",
-        totalQuestions: data.totalQuestions || 0, // Verifica e mostra o valor carregado
-      };
-    });
+    const cargosList = cargosSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      title: doc.data().title || "Cargo sem título",
+      totalQuestions: doc.data().totalQuestions || 0,
+      pendingQuestions: doc.data().pendingQuestions || 0, // Agora pega direto o total de pendências
+    }));
 
     setCargos(cargosList);
   };
@@ -35,10 +32,15 @@ const ReviewPage = () => {
           <Link
             key={cargo.id}
             to={`/revisao/cargo/${cargo.id}`}
-            className="bg-white p-4 rounded shadow-md"
+            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
           >
             <h3 className="font-semibold">{cargo.title}</h3>
             <p>{cargo.totalQuestions} questões no total</p>
+            {cargo.pendingQuestions > 0 && (
+              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
+                {cargo.pendingQuestions}
+              </span>
+            )}
           </Link>
         ))}
       </div>

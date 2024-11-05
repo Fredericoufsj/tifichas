@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { doc, updateDoc, getDocs, getDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, getDocs, getDoc, collection, increment } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 
 const ReviewQuestionPage = () => {
@@ -41,7 +41,12 @@ const ReviewQuestionPage = () => {
         return !nextReviewDate || nextReviewDate <= today;
       });
 
-    setQuestions(questionsList);
+    if (questionsList.length === 0) {
+      setShowCongratsModal(true);
+      setTimeout(() => navigate(-1), 3000);
+    } else {
+      setQuestions(questionsList);
+    }
   };
 
   const fetchProgress = async () => {
@@ -59,22 +64,29 @@ const ReviewQuestionPage = () => {
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + days);
 
-    await updateDoc(doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId, "questions", questionId), {
+    const questionRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId, "questions", questionId);
+
+    await updateDoc(questionRef, {
       nextReview: nextReviewDate,
       reviewed: true,
     });
 
-    const topicDocRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
-    const topicSnapshot = await getDoc(topicDocRef);
-    if (topicSnapshot.exists() && !questions[currentIndex].reviewed) { 
+    // Atualizar pendências no documento do tópico
+    const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
+    await updateDoc(topicRef, {
+      pendingQuestions: increment(-1),
+      completedQuestions: increment(1),
+    });
+
+    // Atualizar progresso
+    const topicSnapshot = await getDoc(topicRef);
+    if (topicSnapshot.exists()) {
       const data = topicSnapshot.data();
-      const newCompletedQuestions = (data.completedQuestions || 0) + 1;
-      await updateDoc(topicDocRef, {
-        completedQuestions: newCompletedQuestions,
-      });
-      setProgress((newCompletedQuestions / data.totalQuestions) * 100);
+      const newProgress = (data.completedQuestions / data.totalQuestions) * 100;
+      setProgress(newProgress);
     }
 
+    // Avança para a próxima questão ou exibe o modal de parabéns
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {

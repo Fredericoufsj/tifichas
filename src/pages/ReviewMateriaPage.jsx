@@ -15,15 +15,29 @@ const ReviewMateriaPage = () => {
     const materiasCollection = collection(db, "cargos", cargoId, "subjects");
     const materiasSnapshot = await getDocs(materiasCollection);
 
-    const materiasList = materiasSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      console.log(`Materia ID: ${doc.id}, totalQuestions: ${data.totalQuestions}`); // Log para cada matéria
-      return {
-        id: doc.id,
-        subject: data.subject || "Matéria sem título",
-        totalQuestions: data.totalQuestions || 0, // Verifica e mostra o valor carregado
-      };
-    });
+    const materiasList = await Promise.all(
+      materiasSnapshot.docs.map(async (doc) => {
+        const materiaData = doc.data();
+        const topicsCollection = collection(db, "cargos", cargoId, "subjects", doc.id, "topics");
+        const topicsSnapshot = await getDocs(topicsCollection);
+
+        // Calcula o número total de questões e questões pendentes na matéria a partir dos tópicos
+        let totalQuestions = 0;
+        let pendingQuestions = 0;
+        topicsSnapshot.docs.forEach((topicDoc) => {
+          const topicData = topicDoc.data();
+          totalQuestions += topicData.totalQuestions || 0;
+          pendingQuestions += topicData.pendingQuestions || 0;
+        });
+
+        return {
+          id: doc.id,
+          subject: materiaData.subject || "Matéria sem título",
+          totalQuestions,
+          pendingQuestions,
+        };
+      })
+    );
 
     setMaterias(materiasList);
   };
@@ -36,10 +50,15 @@ const ReviewMateriaPage = () => {
           <Link
             key={materia.id}
             to={`/revisao/cargo/${cargoId}/materia/${materia.id}`}
-            className="bg-white p-4 rounded shadow-md"
+            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
           >
             <h3 className="font-semibold">{materia.subject}</h3>
             <p>{materia.totalQuestions} questões no total</p>
+            {materia.pendingQuestions > 0 && (
+              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
+                {materia.pendingQuestions}
+              </span>
+            )}
           </Link>
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 const ReviewTopicPage = () => {
   const { cargoId, materiaId } = useParams();
@@ -15,12 +15,27 @@ const ReviewTopicPage = () => {
     const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
     const topicsSnapshot = await getDocs(topicsCollection);
 
-    const topicsList = topicsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      title: doc.data().title || "Tópico sem título",
-      totalQuestions: doc.data().totalQuestions || 0, // Usa o valor direto do Firestore
-    }));
-    console.log("Topics fetched:", topicsList); // Verifica o totalQuestions de cada cargo
+    const today = new Date();
+    const topicsList = await Promise.all(
+      topicsSnapshot.docs.map(async (doc) => {
+        const topicData = doc.data();
+        const questionsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics", doc.id, "questions");
+        const questionsSnapshot = await getDocs(questionsCollection);
+
+        // Conta o número de questões pendentes
+        const pendingQuestions = questionsSnapshot.docs.filter((questionDoc) => {
+          const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
+          return !nextReviewDate || nextReviewDate <= today;
+        }).length;
+
+        return {
+          id: doc.id,
+          title: topicData.title || "Tópico sem título",
+          totalQuestions: topicData.totalQuestions || 0,
+          pendingQuestions,
+        };
+      })
+    );
 
     setTopics(topicsList);
   };
@@ -33,10 +48,15 @@ const ReviewTopicPage = () => {
           <Link
             key={topic.id}
             to={`/revisao/cargo/${cargoId}/materia/${materiaId}/topico/${topic.id}`}
-            className="bg-white p-4 rounded shadow-md"
+            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
           >
             <h3 className="font-semibold">{topic.title}</h3>
             <p>{topic.totalQuestions} questões no total</p>
+            {topic.pendingQuestions > 0 && (
+              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
+                {topic.pendingQuestions}
+              </span>
+            )}
           </Link>
         ))}
       </div>
