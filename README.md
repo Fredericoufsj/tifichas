@@ -59,7 +59,7 @@ Cada tópico contém os campos `totalQuestions` e `completedQuestions` para faci
         export const db = getFirestore(app);
 
 4. **Rodar o Projeto**
-      ```  npm run dev
+      npm run dev
 
 5. **Populate do Firestore**
 
@@ -68,10 +68,10 @@ Cada tópico contém os campos `totalQuestions` e `completedQuestions` para faci
 **Barra de Progresso:** Exibe o progresso de revisão, com base em totalQuestions e completedQuestions.
 **Estrutura de Pastas**
 ## src
-**components** - Componentes reutilizáveis, como FlashCard e Modals.
-**pages** - Páginas do app, como Home, CargoPage, ReviewPage.
-**firebaseConfig.js** - Configurações do Firebase.
-**data** - Scripts para popular o banco de dados.
+- **components** - Componentes reutilizáveis, como FlashCard e Modals.
+- **pages** - Páginas do app, como Home, CargoPage, ReviewPage.
+- **firebaseConfig.js** - Configurações do Firebase.
+- **data** - Scripts para popular o banco de dados.
 ## Contribuição
 - Faça um fork do projeto.
 - Crie uma branch para sua feature (git checkout -b feature/nova-feature).
