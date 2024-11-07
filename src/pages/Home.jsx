@@ -1,7 +1,9 @@
+// src/pages/Home.jsx
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import CargoModal from "../components/CargoModal";
 import { FaEdit, FaTrash } from "react-icons/fa";
 
@@ -10,8 +12,10 @@ const Home = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCargo, setEditingCargo] = useState(null);
   const [timeLeft, setTimeLeft] = useState({});
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
+    fetchUserRole(); // Busca o papel do usuário logado
     fetchCargos();
   }, []);
 
@@ -22,6 +26,19 @@ const Home = () => {
 
     return () => clearInterval(timer); // Limpa o intervalo ao desmontar o componente
   }, [cargos]);
+
+  const fetchUserRole = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserRole(userDoc.data().role); // Define o papel do usuário (admin ou viewer)
+      }
+    }
+  };
 
   const fetchCargos = async () => {
     const cargosCollection = collection(db, "cargos");
@@ -110,23 +127,28 @@ const Home = () => {
                   <p className="text-sm text-red-500 font-medium">Prova Iniciada</p>
                 )}
               </div>
-              <div className="flex space-x-2 ml-4">
-                <button onClick={() => openEditModal(cargo)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
-                  <FaEdit />
-                </button>
-                <button onClick={() => handleDelete(cargo.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
-                  <FaTrash />
-                </button>
-              </div>
+              
+              {/* Condicional para exibir os ícones apenas para admins */}
+              {userRole === "admin" && (
+                <div className="flex space-x-2 ml-4">
+                  <button onClick={() => openEditModal(cargo)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
+                    <FaEdit />
+                  </button>
+                  <button onClick={() => handleDelete(cargo.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
+                    <FaTrash />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
-
+            {/* Condicional para exibir os ícones apenas para admins */}
+            {userRole === "admin" && (
       <div className="flex justify-center mt-8">
         <button onClick={openAddModal} className="bg-blue-500 text-white p-3 rounded">Adicionar Novo Cargo</button>
       </div>
-
+              )}
       <CargoModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
