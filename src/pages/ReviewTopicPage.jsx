@@ -22,7 +22,6 @@ const ReviewTopicPage = () => {
         const questionsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics", doc.id, "questions");
         const questionsSnapshot = await getDocs(questionsCollection);
 
-        // Conta o número de questões pendentes
         const pendingQuestions = questionsSnapshot.docs.filter((questionDoc) => {
           const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
           return !nextReviewDate || nextReviewDate <= today;
@@ -41,20 +40,20 @@ const ReviewTopicPage = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Tópicos</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="p-6 ml-20 md:ml-0">
+      <h2 className="text-2xl font-bold mb-6 text-center">Tópicos</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
         {topics.map((topic) => (
           <Link
             key={topic.id}
             to={`/revisao/cargo/${cargoId}/materia/${materiaId}/topico/${topic.id}`}
-            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
+            className="bg-white p-4 rounded-lg shadow-md flex flex-col w-full max-w-xs items-center"
           >
-            <h3 className="font-semibold">{topic.title}</h3>
-            <p>{topic.totalQuestions} questões no total</p>
+            <h3 className="font-semibold text-lg text-center mb-2">{topic.title}</h3>
+            <p className="text-gray-600 text-sm">{topic.totalQuestions} questões no total</p>
             {topic.pendingQuestions > 0 && (
-              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
-                {topic.pendingQuestions}
+              <span className="bg-red-500 text-white rounded-full px-3 py-1 mt-2 text-xs font-bold">
+                {topic.pendingQuestions} pendentes
               </span>
             )}
           </Link>

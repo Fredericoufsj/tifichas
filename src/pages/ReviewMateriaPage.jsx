@@ -21,7 +21,6 @@ const ReviewMateriaPage = () => {
         const topicsCollection = collection(db, "cargos", cargoId, "subjects", doc.id, "topics");
         const topicsSnapshot = await getDocs(topicsCollection);
 
-        // Calcula o número total de questões e questões pendentes na matéria a partir dos tópicos
         let totalQuestions = 0;
         let pendingQuestions = 0;
         topicsSnapshot.docs.forEach((topicDoc) => {
@@ -43,20 +42,20 @@ const ReviewMateriaPage = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Matérias</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="p-6 ml-20 md:ml-0">
+      <h2 className="text-2xl font-bold mb-6 text-center">Matérias</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
         {materias.map((materia) => (
           <Link
             key={materia.id}
             to={`/revisao/cargo/${cargoId}/materia/${materia.id}`}
-            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
+            className="bg-white p-4 rounded-lg shadow-md flex flex-col w-full max-w-xs items-center"
           >
-            <h3 className="font-semibold">{materia.subject}</h3>
-            <p>{materia.totalQuestions} questões no total</p>
+            <h3 className="font-semibold text-lg text-center mb-2">{materia.subject}</h3>
+            <p className="text-gray-600 text-sm">{materia.totalQuestions} questões no total</p>
             {materia.pendingQuestions > 0 && (
-              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
-                {materia.pendingQuestions}
+              <span className="bg-red-500 text-white rounded-full px-3 py-1 mt-2 text-xs font-bold">
+                {materia.pendingQuestions} pendentes
               </span>
             )}
           </Link>

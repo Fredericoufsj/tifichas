@@ -47,23 +47,21 @@ const ReviewPage = () => {
     setCargos(cargosList);
   };
   
-  
-
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Revisão Inteligente</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="p-6 ml-20 md:ml-0">
+      <h2 className="text-2xl font-bold mb-6 text-center">Revisão Inteligente</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
         {cargos.map((cargo) => (
           <Link
             key={cargo.id}
             to={`/revisao/cargo/${cargo.id}`}
-            className="bg-white p-4 rounded shadow-md flex justify-between items-center"
+            className="bg-white p-4 rounded-lg shadow-md flex flex-col w-full max-w-xs items-center"
           >
-            <h3 className="font-semibold">{cargo.title}</h3>
-            <p>{cargo.totalQuestions} questões no total</p>
+            <h3 className="font-semibold text-lg text-center mb-2">{cargo.title}</h3>
+            <p className="text-gray-600 text-sm">{cargo.totalQuestions} questões no total</p>
             {cargo.pendingQuestions > 0 && (
-              <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs font-bold">
-                {cargo.pendingQuestions}
+              <span className="bg-red-500 text-white rounded-full px-3 py-1 mt-2 text-xs font-bold">
+                {cargo.pendingQuestions} pendentes
               </span>
             )}
           </Link>
