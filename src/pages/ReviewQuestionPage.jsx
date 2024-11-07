@@ -63,30 +63,55 @@ const ReviewQuestionPage = () => {
     const questionId = questions[currentIndex].id;
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + days);
-
-    const questionRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId, "questions", questionId);
-
+  
+    const questionRef = doc(
+      db,
+      "cargos",
+      cargoId,
+      "subjects",
+      materiaId,
+      "topics",
+      topicoId,
+      "questions",
+      questionId
+    );
+  
+    // Atualizar a questão específica com a nova data de revisão
     await updateDoc(questionRef, {
       nextReview: nextReviewDate,
       reviewed: true,
     });
-
-    // Atualizar pendências no documento do tópico
+  
+    // Atualizar pendências no tópico
     const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
     await updateDoc(topicRef, {
       pendingQuestions: increment(-1),
       completedQuestions: increment(1),
     });
-
-    // Atualizar progresso
+  
+    // Propagar a atualização para o subject
+    const subjectRef = doc(db, "cargos", cargoId, "subjects", materiaId);
+    await updateDoc(subjectRef, {
+      pendingQuestions: increment(-1),
+      completedQuestions: increment(1),
+    });
+  
+    // Propagar a atualização para o cargo
+    const cargoRef = doc(db, "cargos", cargoId);
+    await updateDoc(cargoRef, {
+      pendingQuestions: increment(-1),
+      completedQuestions: increment(1),
+    });
+  
+    // Atualizar progresso localmente no frontend para refletir as mudanças
     const topicSnapshot = await getDoc(topicRef);
     if (topicSnapshot.exists()) {
       const data = topicSnapshot.data();
       const newProgress = (data.completedQuestions / data.totalQuestions) * 100;
       setProgress(newProgress);
     }
-
-    // Avança para a próxima questão ou exibe o modal de parabéns
+  
+    // Avançar para a próxima questão ou exibir o modal de parabéns
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -96,6 +121,7 @@ const ReviewQuestionPage = () => {
       }, 3000); // Exibe o modal por 3 segundos antes de redirecionar
     }
   };
+  
 
   if (questions.length === 0 && !showCongratsModal) return <p>Carregando questões...</p>;
 
