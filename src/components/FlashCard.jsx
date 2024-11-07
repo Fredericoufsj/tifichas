@@ -34,6 +34,7 @@ const FlashCard = ({ title, description, onEdit, onDelete }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation(); // Impede o flip ao clicar no botão
+                console.log("Edit button clicked"); // Log para depurar edição
                 onEdit();
               }}
               className="p-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-white"
@@ -43,6 +44,7 @@ const FlashCard = ({ title, description, onEdit, onDelete }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation(); // Impede o flip ao clicar no botão
+                console.log("Delete button clicked"); // Log para depurar exclusão
                 onDelete();
               }}
               className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white"

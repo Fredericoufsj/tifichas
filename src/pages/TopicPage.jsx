@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 import AddQuestionForm from "../components/AddQuestionForm";
 
@@ -9,6 +9,9 @@ const TopicPage = () => {
   const { cargoId, materiaId, topicoId } = useParams();
   const [questions, setQuestions] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null); // Estado para controlar a edição
+  const [editFront, setEditFront] = useState("");
+  const [editVerso, setEditVerso] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,64 +37,63 @@ const TopicPage = () => {
     setQuestions(questionsList);
   };
 
-  // Função para atualizar o total de questões no tópico
-  const updateTopicTotalQuestions = async () => {
-    const questionsCollection = collection(
-      db,
-      "cargos",
-      cargoId,
-      "subjects",
-      materiaId,
-      "topics",
-      topicoId,
-      "questions"
-    );
-    const questionsSnapshot = await getDocs(questionsCollection);
-    const totalQuestions = questionsSnapshot.size;
-
-    const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
-    await updateDoc(topicRef, { totalQuestions });
-
-    // Após atualizar o tópico, atualize a matéria
-    await updateMateriaTotalQuestions();
+  const handleEdit = (question) => {
+    setEditingQuestion(question.id);
+    setEditFront(question.front);
+    setEditVerso(question.verso);
   };
 
-  // Função para atualizar o total de questões na matéria
-  const updateMateriaTotalQuestions = async () => {
-    const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
-    const topicsSnapshot = await getDocs(topicsCollection);
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
 
-    let totalQuestions = 0;
-    topicsSnapshot.forEach((doc) => {
-      totalQuestions += doc.data().totalQuestions || 0;
-    });
+    try {
+      const questionRef = doc(
+        db,
+        "cargos",
+        cargoId,
+        "subjects",
+        materiaId,
+        "topics",
+        topicoId,
+        "questions",
+        editingQuestion
+      );
+      await updateDoc(questionRef, {
+        front: editFront,
+        verso: editVerso,
+      });
+      console.log("Question edited successfully");
 
-    const materiaRef = doc(db, "cargos", cargoId, "subjects", materiaId);
-    await updateDoc(materiaRef, { totalQuestions });
-
-    // Após atualizar a matéria, atualize o cargo
-    await updateCargoTotalQuestions();
+      // Atualizar a lista de perguntas após a edição
+      fetchQuestions();
+      setEditingQuestion(null); // Fecha o modo de edição
+    } catch (error) {
+      console.error("Erro ao editar questão:", error);
+    }
   };
 
-  // Função para atualizar o total de questões no cargo
-  const updateCargoTotalQuestions = async () => {
-    const materiasCollection = collection(db, "cargos", cargoId, "subjects");
-    const materiasSnapshot = await getDocs(materiasCollection);
+  const handleDelete = async (id) => {
+    try {
+      const questionRef = doc(
+        db,
+        "cargos",
+        cargoId,
+        "subjects",
+        materiaId,
+        "topics",
+        topicoId,
+        "questions",
+        id
+      );
+      await deleteDoc(questionRef);
+      console.log("Question deleted successfully");
 
-    let totalQuestions = 0;
-    materiasSnapshot.forEach((doc) => {
-      totalQuestions += doc.data().totalQuestions || 0;
-    });
-
-    const cargoRef = doc(db, "cargos", cargoId);
-    await updateDoc(cargoRef, { totalQuestions });
-  };
-
-  // Atualizar a lista de perguntas após adicionar uma nova
-  const handleQuestionAdded = () => {
-    fetchQuestions(); // Atualiza a lista de perguntas
-    updateTopicTotalQuestions(); // Atualiza o total de questões no tópico e propaga
-    setShowForm(false); // Fecha o formulário
+      // Atualizar a lista de perguntas após a exclusão
+      fetchQuestions();
+    } catch (error) {
+      console.error("Erro ao deletar questão:", error);
+    }
   };
 
   return (
@@ -104,11 +106,48 @@ const TopicPage = () => {
             key={question.id}
             title={question.front}
             description={question.verso}
-            onEdit={() => console.log("Editar", question.id)}
-            onDelete={() => console.log("Deletar", question.id)}
+            onEdit={() => handleEdit(question)}
+            onDelete={() => handleDelete(question.id)}
           />
         ))}
       </div>
+
+      {/* Formulário de Edição */}
+      {editingQuestion && (
+        <div className="flex justify-center mt-8">
+          <form onSubmit={handleEditSubmit} className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Editar Questão</h3>
+            <div className="mb-4">
+              <label className="block text-gray-700">Pergunta (Front)</label>
+              <input
+                type="text"
+                value={editFront}
+                onChange={(e) => setEditFront(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Resposta (Verso)</label>
+              <input
+                type="text"
+                value={editVerso}
+                onChange={(e) => setEditVerso(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button type="button" onClick={() => setEditingQuestion(null)} className="bg-gray-500 text-white p-2 rounded">
+                Cancelar
+              </button>
+              <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+                Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="flex justify-center mt-8">
         <button
@@ -119,14 +158,13 @@ const TopicPage = () => {
         </button>
       </div>
 
-      {/* Formulário para adicionar nova questão */}
       {showForm && (
         <div className="mt-8 flex justify-center">
           <AddQuestionForm
             cargoId={cargoId}
             materiaId={materiaId}
             topicoId={topicoId}
-            onQuestionAdded={handleQuestionAdded}
+            onQuestionAdded={fetchQuestions}
           />
         </div>
       )}

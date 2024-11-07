@@ -2,6 +2,8 @@
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { FaGoogle } from "react-icons/fa";
+import { db } from "../firebaseConfig";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -10,7 +12,21 @@ const LoginPage = () => {
 
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Verifica se o documento do usuário existe no Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        // Cria um novo documento para o usuário com permissão "viewer"
+        await setDoc(userDocRef, {
+          email: user.email,
+          role: "viewer", // Define o papel padrão como "viewer"
+        });
+      }
+
       navigate("/"); // Redireciona para a página inicial após o login
     } catch (error) {
       console.error("Erro ao fazer login:", error);

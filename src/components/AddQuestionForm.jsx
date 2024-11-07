@@ -6,9 +6,11 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
   const [front, setFront] = useState("");
   const [verso, setVerso] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage(""); // Reset de erro a cada submissão
 
     try {
       // Adicionar nova questão
@@ -53,6 +55,7 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
       onQuestionAdded();
     } catch (error) {
       console.error("Erro ao adicionar questão:", error);
+      setErrorMessage(`Erro ao adicionar questão: ${error.message}`);
     }
   };
 
@@ -60,6 +63,7 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
     <div className="p-4 bg-white rounded shadow-md">
       <h3 className="text-xl font-semibold mb-4">Adicionar Nova Questão</h3>
       {successMessage && <p className="text-green-500 mb-4">{successMessage}</p>}
+      {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-gray-700">Pergunta (Front)</label>
