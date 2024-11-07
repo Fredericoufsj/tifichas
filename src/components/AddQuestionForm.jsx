@@ -1,6 +1,7 @@
 import { collection, addDoc, updateDoc, doc, increment } from "firebase/firestore";
 import { useState } from "react";
 import { db } from "../firebaseConfig";
+
 const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
   const [front, setFront] = useState("");
   const [verso, setVerso] = useState("");
@@ -23,19 +24,33 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
       );
       await addDoc(questionsCollection, { front, verso });
 
+      // Incrementar totalQuestions no documento do tópico
       const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
       await updateDoc(topicRef, {
         totalQuestions: increment(1),
+        pendingQuestions: increment(1), // Incrementa também pendingQuestions
       });
 
-      console.log("Incremented totalQuestions in Firestore");
+      // Incrementar totalQuestions e pendingQuestions no documento da matéria
+      const subjectRef = doc(db, "cargos", cargoId, "subjects", materiaId);
+      await updateDoc(subjectRef, {
+        totalQuestions: increment(1),
+        pendingQuestions: increment(1),
+      });
 
+      // Incrementar totalQuestions e pendingQuestions no documento do cargo
+      const cargoRef = doc(db, "cargos", cargoId);
+      await updateDoc(cargoRef, {
+        totalQuestions: increment(1),
+        pendingQuestions: increment(1),
+      });
 
       setSuccessMessage("Questão adicionada com sucesso!");
       setFront("");
       setVerso("");
 
-      onQuestionAdded(); // Notifica o componente pai para atualizar a lista de questões
+      // Notifica o componente pai para atualizar a lista de questões
+      onQuestionAdded();
     } catch (error) {
       console.error("Erro ao adicionar questão:", error);
     }
