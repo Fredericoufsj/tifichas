@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
@@ -7,20 +6,22 @@ import CargoModal from "../components/CargoModal";
 import { FaEdit, FaTrash } from "react-icons/fa";
 
 const Home = () => {
-  const examDate = new Date("2025-01-19T00:00:00");
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
   const [cargos, setCargos] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCargo, setEditingCargo] = useState(null);
+  const [timeLeft, setTimeLeft] = useState({});
+
+  useEffect(() => {
+    fetchCargos();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
+      updateTimers();
     }, 1000);
-    fetchCargos();
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearInterval(timer); // Limpa o intervalo ao desmontar o componente
+  }, [cargos]);
 
   const fetchCargos = async () => {
     const cargosCollection = collection(db, "cargos");
@@ -28,8 +29,33 @@ const Home = () => {
     const cargosList = cargosSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
+      examDate: doc.data().examDate ? doc.data().examDate.toDate() : null,
     }));
     setCargos(cargosList);
+    updateTimers(cargosList); // Atualiza o tempo restante imediatamente ao carregar os cargos
+  };
+
+  const updateTimers = (cargosList = cargos) => {
+    const now = new Date();
+    const newTimeLeft = {};
+
+    cargosList.forEach((cargo) => {
+      if (cargo.examDate) {
+        const difference = cargo.examDate - now;
+        if (difference > 0) {
+          newTimeLeft[cargo.id] = {
+            days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((difference / 1000 / 60) % 60),
+            seconds: Math.floor((difference / 1000) % 60),
+          };
+        } else {
+          newTimeLeft[cargo.id] = null; // Prova iniciada
+        }
+      }
+    });
+
+    setTimeLeft(newTimeLeft);
   };
 
   const handleAdd = async (data) => {
@@ -62,53 +88,36 @@ const Home = () => {
     setModalOpen(true);
   };
 
-  function calculateTimeLeft() {
-    const now = new Date();
-    const difference = examDate - now;
-
-    if (difference > 0) {
-      return {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      };
-    } else {
-      return null;
-    }
-  }
-
   return (
     <div className="min-h-screen bg-lightGray flex flex-col items-center p-6 text-pureBlack font-body">
       <h1 className="text-4xl font-header font-bold mt-10 mb-4">Bem-vindo ao Portal de Estudos</h1>
       <p className="text-xl italic mb-10 text-darkGray">"O sucesso é a soma de pequenos esforços repetidos dia após dia."</p>
 
-      {timeLeft ? (
-        <div className="text-center bg-mediumGray text-pureBlack rounded-lg p-4 mb-10 shadow-lg">
-          <h2 className="text-2xl font-semibold">Tempo até a prova:</h2>
-          <p className="text-lg mt-2">
-            {timeLeft.days} dias, {timeLeft.hours} horas, {timeLeft.minutes} minutos, {timeLeft.seconds} segundos
-          </p>
-        </div>
-      ) : (
-        <div className="text-center bg-darkGray text-pureWhite rounded-lg p-4 mb-10 shadow-lg">
-          <h2 className="text-2xl font-semibold">A prova já começou! Boa sorte!</h2>
-        </div>
-      )}
-
       <div className="flex flex-col space-y-4 items-center w-full max-w-md">
         {cargos.map((cargo) => (
-          <div key={cargo.id} className="relative w-full bg-pureWhite text-pureBlack text-lg font-header font-semibold py-3 rounded-lg shadow-md flex justify-between items-center">
-            <Link to={`/cargo/${cargo.id}`} className="flex-1 text-center">
-              {cargo.title}
+          <div key={cargo.id} className="relative w-full bg-pureWhite text-pureBlack text-lg font-header font-semibold py-4 px-6 rounded-lg shadow-md flex flex-col">
+            <Link to={`/cargo/${cargo.id}`} className="block text-left">
+              <h3 className="font-semibold">{cargo.title}</h3>
             </Link>
-            <div className="flex space-x-2 pr-4">
-              <button onClick={() => openEditModal(cargo)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
-                <FaEdit />
-              </button>
-              <button onClick={() => handleDelete(cargo.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
-                <FaTrash />
-              </button>
+            <div className="flex justify-between items-center mt-2">
+              <div className="text-sm text-right">
+                {timeLeft[cargo.id] ? (
+                  <>
+                    <p className="font-medium text-gray-600">Tempo até a prova:</p>
+                    <p>{timeLeft[cargo.id].days}d {timeLeft[cargo.id].hours}h {timeLeft[cargo.id].minutes}m {timeLeft[cargo.id].seconds}s</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-red-500 font-medium">Prova Iniciada</p>
+                )}
+              </div>
+              <div className="flex space-x-2 ml-4">
+                <button onClick={() => openEditModal(cargo)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
+                  <FaEdit />
+                </button>
+                <button onClick={() => handleDelete(cargo.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
+                  <FaTrash />
+                </button>
+              </div>
             </div>
           </div>
         ))}
