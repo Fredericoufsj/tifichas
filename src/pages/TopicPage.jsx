@@ -10,19 +10,16 @@ const TopicPage = () => {
   const { cargoId, materiaId, topicoId } = useParams();
   const [questions, setQuestions] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState(null); // Estado para controlar a edição
+  const [editingQuestion, setEditingQuestion] = useState(null);
   const [editFront, setEditFront] = useState("");
   const [editVerso, setEditVerso] = useState("");
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    fetchQuestions();
-  }, [cargoId, materiaId, topicoId]);
-
-  useEffect(() => {
+    fetchUserQuestions();
     fetchUserRole();
-  }, []);
+  }, [cargoId, materiaId, topicoId]);
 
   const fetchUserRole = async () => {
     const auth = getAuth();
@@ -37,9 +34,16 @@ const TopicPage = () => {
     }
   };
 
-  const fetchQuestions = async () => {
+  const fetchUserQuestions = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
     const questionsCollection = collection(
       db,
+      "users",
+      user.uid,
       "cargos",
       cargoId,
       "subjects",
@@ -49,10 +53,7 @@ const TopicPage = () => {
       "questions"
     );
     const questionsSnapshot = await getDocs(questionsCollection);
-    const questionsList = questionsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const questionsList = questionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     setQuestions(questionsList);
   };
 
@@ -67,8 +68,13 @@ const TopicPage = () => {
     if (!editingQuestion) return;
 
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
       const questionRef = doc(
         db,
+        "users",
+        user.uid,
         "cargos",
         cargoId,
         "subjects",
@@ -82,11 +88,9 @@ const TopicPage = () => {
         front: editFront,
         verso: editVerso,
       });
-      console.log("Question edited successfully");
 
-      // Atualizar a lista de perguntas após a edição
-      fetchQuestions();
-      setEditingQuestion(null); // Fecha o modo de edição
+      fetchUserQuestions();
+      setEditingQuestion(null);
     } catch (error) {
       console.error("Erro ao editar questão:", error);
     }
@@ -94,8 +98,13 @@ const TopicPage = () => {
 
   const handleDelete = async (id) => {
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
       const questionRef = doc(
         db,
+        "users",
+        user.uid,
         "cargos",
         cargoId,
         "subjects",
@@ -106,10 +115,8 @@ const TopicPage = () => {
         id
       );
       await deleteDoc(questionRef);
-      console.log("Question deleted successfully");
 
-      // Atualizar a lista de perguntas após a exclusão
-      fetchQuestions();
+      fetchUserQuestions();
     } catch (error) {
       console.error("Erro ao deletar questão:", error);
     }
@@ -118,7 +125,7 @@ const TopicPage = () => {
   return (
     <div className="min-h-screen bg-lightGray p-6">
       <h2 className="text-3xl font-bold text-center">Perguntas</h2>
-      
+
       <div className="mt-8 flex flex-wrap justify-center gap-6">
         {questions.map((question) => (
           <FlashCard
@@ -131,7 +138,6 @@ const TopicPage = () => {
         ))}
       </div>
 
-      {/* Formulário de Edição */}
       {editingQuestion && (
         <div className="flex justify-center mt-8">
           <form onSubmit={handleEditSubmit} className="bg-white p-6 rounded shadow-lg w-full max-w-md">
@@ -168,14 +174,13 @@ const TopicPage = () => {
         </div>
       )}
 
-      {userRole === "admin" && (<div className="flex justify-center mt-8">
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-500 text-white p-3 rounded"
-        >
-          {showForm ? "Cancelar" : "Adicionar Nova Questão"}
-        </button>
-      </div>)}
+      {userRole === "admin" && (
+        <div className="flex justify-center mt-8">
+          <button onClick={() => setShowForm(!showForm)} className="bg-blue-500 text-white p-3 rounded">
+            {showForm ? "Cancelar" : "Adicionar Nova Questão"}
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <div className="mt-8 flex justify-center">
@@ -183,7 +188,7 @@ const TopicPage = () => {
             cargoId={cargoId}
             materiaId={materiaId}
             topicoId={topicoId}
-            onQuestionAdded={fetchQuestions}
+            onQuestionAdded={fetchUserQuestions}
           />
         </div>
       )}

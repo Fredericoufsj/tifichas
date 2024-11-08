@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
+import { getAuth } from "firebase/auth";
 import { doc, updateDoc, getDocs, getDoc, collection, increment } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 
@@ -18,8 +19,19 @@ const ReviewQuestionPage = () => {
   }, [cargoId, materiaId, topicoId]);
 
   const fetchQuestions = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.error("Usuário não autenticado.");
+      return;
+    }
+
+    // Caminho atualizado para buscar as questões do usuário
     const questionsCollection = collection(
       db,
+      "users",
+      user.uid,
       "cargos",
       cargoId,
       "subjects",
@@ -50,7 +62,13 @@ const ReviewQuestionPage = () => {
   };
 
   const fetchProgress = async () => {
-    const topicDocRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    // Caminho atualizado para buscar o progresso
+    const topicDocRef = doc(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
     const topicSnapshot = await getDoc(topicDocRef);
     if (topicSnapshot.exists()) {
       const data = topicSnapshot.data();
@@ -60,12 +78,20 @@ const ReviewQuestionPage = () => {
   };
 
   const handleReviewResponse = async (days) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
     const questionId = questions[currentIndex].id;
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + days);
-  
+
+    // Caminho atualizado para atualizar a questão
     const questionRef = doc(
       db,
+      "users",
+      user.uid,
       "cargos",
       cargoId,
       "subjects",
@@ -75,53 +101,51 @@ const ReviewQuestionPage = () => {
       "questions",
       questionId
     );
-  
-    // Atualizar a questão específica com a nova data de revisão
+
     await updateDoc(questionRef, {
       nextReview: nextReviewDate,
       reviewed: true,
     });
-  
+
     // Atualizar pendências no tópico
-    const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
+    const topicRef = doc(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
     await updateDoc(topicRef, {
       pendingQuestions: increment(-1),
       completedQuestions: increment(1),
     });
-  
-    // Propagar a atualização para o subject
-    const subjectRef = doc(db, "cargos", cargoId, "subjects", materiaId);
+
+    // Atualizar pendências no subject
+    const subjectRef = doc(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId);
     await updateDoc(subjectRef, {
       pendingQuestions: increment(-1),
       completedQuestions: increment(1),
     });
-  
-    // Propagar a atualização para o cargo
-    const cargoRef = doc(db, "cargos", cargoId);
+
+    // Atualizar pendências no cargo
+    const cargoRef = doc(db, "users", user.uid, "cargos", cargoId);
     await updateDoc(cargoRef, {
       pendingQuestions: increment(-1),
       completedQuestions: increment(1),
     });
-  
-    // Atualizar progresso localmente no frontend para refletir as mudanças
+
+    // Atualizar progresso localmente no frontend
     const topicSnapshot = await getDoc(topicRef);
     if (topicSnapshot.exists()) {
       const data = topicSnapshot.data();
       const newProgress = (data.completedQuestions / data.totalQuestions) * 100;
       setProgress(newProgress);
     }
-  
+
     // Avançar para a próxima questão ou exibir o modal de parabéns
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       setShowCongratsModal(true);
       setTimeout(() => {
-        navigate(-1); // Redireciona para a página anterior (Tópicos)
-      }, 3000); // Exibe o modal por 3 segundos antes de redirecionar
+        navigate(-1);
+      }, 3000);
     }
   };
-  
 
   if (questions.length === 0 && !showCongratsModal) return <p>Carregando questões...</p>;
 
@@ -140,7 +164,6 @@ const ReviewQuestionPage = () => {
         </div>
       </div>
 
-      {/* Modal de Parabéns */}
       {showCongratsModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-8 rounded shadow-lg text-center">

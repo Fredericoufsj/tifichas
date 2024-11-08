@@ -1,6 +1,7 @@
-import { collection, addDoc, updateDoc, doc, increment } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { useState } from "react";
 import { db } from "../firebaseConfig";
+import { getAuth } from "firebase/auth";
 
 const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
   const [front, setFront] = useState("");
@@ -10,12 +11,22 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage(""); // Reset de erro a cada submissão
+    setErrorMessage("");
 
     try {
-      // Adicionar nova questão
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        setErrorMessage("Usuário não autenticado.");
+        return;
+      }
+
+      // Caminho correto para adicionar a questão
       const questionsCollection = collection(
         db,
+        "users",
+        user.uid,
         "cargos",
         cargoId,
         "subjects",
@@ -24,34 +35,21 @@ const AddQuestionForm = ({ cargoId, materiaId, topicoId, onQuestionAdded }) => {
         topicoId,
         "questions"
       );
-      await addDoc(questionsCollection, { front, verso });
 
-      // Incrementar totalQuestions no documento do tópico
-      const topicRef = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicoId);
-      await updateDoc(topicRef, {
-        totalQuestions: increment(1),
-        pendingQuestions: increment(1), // Incrementa também pendingQuestions
-      });
-
-      // Incrementar totalQuestions e pendingQuestions no documento da matéria
-      const subjectRef = doc(db, "cargos", cargoId, "subjects", materiaId);
-      await updateDoc(subjectRef, {
-        totalQuestions: increment(1),
-        pendingQuestions: increment(1),
-      });
-
-      // Incrementar totalQuestions e pendingQuestions no documento do cargo
-      const cargoRef = doc(db, "cargos", cargoId);
-      await updateDoc(cargoRef, {
-        totalQuestions: increment(1),
-        pendingQuestions: increment(1),
+      await addDoc(questionsCollection, {
+        front,
+        verso,
+        reviewed: false,
+        nextReview: null,
+        cargoId,
+        materiaId,
+        topicoId,
       });
 
       setSuccessMessage("Questão adicionada com sucesso!");
       setFront("");
       setVerso("");
 
-      // Notifica o componente pai para atualizar a lista de questões
       onQuestionAdded();
     } catch (error) {
       console.error("Erro ao adicionar questão:", error);

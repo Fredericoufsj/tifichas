@@ -1,19 +1,21 @@
-// src/components/CargoModal.jsx
 import { useState, useEffect } from "react";
 
 const CargoModal = ({ isOpen, onClose, onSave, initialData }) => {
   const [title, setTitle] = useState("");
+  const [examDate, setExamDate] = useState("");
 
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title || "");
+      setExamDate(initialData.examDate ? new Date(initialData.examDate).toISOString().slice(0, 16) : "");
     }
   }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ title });
+    onSave({ title, examDate: new Date(examDate) });
     setTitle("");
+    setExamDate("");
   };
 
   if (!isOpen) return null;
@@ -29,6 +31,16 @@ const CargoModal = ({ isOpen, onClose, onSave, initialData }) => {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700">Data do Exame</label>
+            <input
+              type="datetime-local"
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
               className="w-full p-2 border rounded"
               required
             />

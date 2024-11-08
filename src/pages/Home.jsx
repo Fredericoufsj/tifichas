@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
@@ -13,11 +13,27 @@ const Home = () => {
   const [editingCargo, setEditingCargo] = useState(null);
   const [timeLeft, setTimeLeft] = useState({});
   const [userRole, setUserRole] = useState(null);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     fetchUserRole(); // Busca o papel do usuário logado
     fetchCargos();
   }, []);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("Usuário não autenticado. Redirecionando para a página de login.");
+      navigate("/login");
+    } else {
+      console.log("Usuário autenticado:", user.uid);
+    }
+  }, []);
+  
+  
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,27 +46,64 @@ const Home = () => {
   const fetchUserRole = async () => {
     const auth = getAuth();
     const user = auth.currentUser;
-
-    if (user) {
+  
+    if (!user) {
+      console.error("Usuário não autenticado");
+      return;
+    }
+  
+    try {
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
-        setUserRole(userDoc.data().role); // Define o papel do usuário (admin ou viewer)
+        setUserRole(userDoc.data().role);
+      } else {
+        console.error("Documento do usuário não encontrado");
       }
+    } catch (error) {
+      console.error("Erro ao buscar papel do usuário:", error);
     }
   };
-
+  
   const fetchCargos = async () => {
-    const cargosCollection = collection(db, "cargos");
-    const cargosSnapshot = await getDocs(cargosCollection);
-    const cargosList = cargosSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      examDate: doc.data().examDate ? doc.data().examDate.toDate() : null,
-    }));
-    setCargos(cargosList);
-    updateTimers(cargosList); // Atualiza o tempo restante imediatamente ao carregar os cargos
+    const auth = getAuth();
+    const user = auth.currentUser;
+    console.log("Usuário autenticado:", user.uid);
+console.log("Buscando cargos em:", `users/${user.uid}/cargos`);
+
+  
+    if (!user) {
+      console.error("Usuário não autenticado");
+      return;
+    }
+  
+    try {
+      // Caminho correto para buscar "cargos" dentro de "users/{userId}"
+      const cargosCollection = collection(db, "users", user.uid, "cargos");
+      const cargosSnapshot = await getDocs(cargosCollection);
+  
+      if (cargosSnapshot.empty) {
+        console.log("Nenhum cargo encontrado para o usuário.");
+        setCargos([]);
+        return;
+      }
+  
+      const cargosList = cargosSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        examDate: doc.data().examDate ? doc.data().examDate.toDate() : null,
+      }));
+  
+      setCargos(cargosList);
+      updateTimers(cargosList);
+    } catch (error) {
+      console.error("Erro ao buscar cargos:", error);
+    }
   };
+  
+  
+  
+  
 
   const updateTimers = (cargosList = cargos) => {
     const now = new Date();
@@ -76,24 +129,69 @@ const Home = () => {
   };
 
   const handleAdd = async (data) => {
-    await addDoc(collection(db, "cargos"), data);
-    setModalOpen(false);
-    fetchCargos();
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("Usuário não autenticado");
+      return;
+    }
+  
+    try {
+      await addDoc(collection(db, "users", user.uid, "cargos"), {
+        ...data,
+        examDate: data.examDate,
+      });
+      setModalOpen(false);
+      fetchCargos();
+    } catch (error) {
+      console.error("Erro ao adicionar cargo:", error);
+    }
   };
+  
 
   const handleUpdate = async (data) => {
-    const cargoDoc = doc(db, "cargos", editingCargo.id);
-    await updateDoc(cargoDoc, data);
-    setModalOpen(false);
-    setEditingCargo(null);
-    fetchCargos();
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("Usuário não autenticado");
+      return;
+    }
+  
+    try {
+      const cargoDoc = doc(db, "users", user.uid, "cargos", editingCargo.id);
+      await updateDoc(cargoDoc, {
+        ...data,
+        examDate: data.examDate,
+      });
+      setModalOpen(false);
+      setEditingCargo(null);
+      fetchCargos();
+    } catch (error) {
+      console.error("Erro ao atualizar cargo:", error);
+    }
   };
+  
 
   const handleDelete = async (cargoId) => {
-    const cargoDoc = doc(db, "cargos", cargoId);
-    await deleteDoc(cargoDoc);
-    fetchCargos();
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("Usuário não autenticado");
+      return;
+    }
+  
+    try {
+      const cargoDoc = doc(db, "users", user.uid, "cargos", cargoId);
+      await deleteDoc(cargoDoc);
+      fetchCargos();
+    } catch (error) {
+      console.error("Erro ao deletar cargo:", error);
+    }
   };
+  
 
   const openAddModal = () => {
     setEditingCargo(null);

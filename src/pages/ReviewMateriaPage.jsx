@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const ReviewMateriaPage = () => {
   const { cargoId } = useParams();
@@ -12,22 +13,53 @@ const ReviewMateriaPage = () => {
   }, [cargoId]);
 
   const fetchMaterias = async () => {
-    const materiasCollection = collection(db, "cargos", cargoId, "subjects");
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.error("Usuário não autenticado.");
+      return;
+    }
+
+    // Ajuste para acessar as matérias dentro de `users/{userId}/cargos/{cargoId}/subjects`
+    const materiasCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects");
     const materiasSnapshot = await getDocs(materiasCollection);
 
+    const today = new Date();
     const materiasList = await Promise.all(
       materiasSnapshot.docs.map(async (doc) => {
         const materiaData = doc.data();
-        const topicsCollection = collection(db, "cargos", cargoId, "subjects", doc.id, "topics");
+        const topicsCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects", doc.id, "topics");
         const topicsSnapshot = await getDocs(topicsCollection);
 
         let totalQuestions = 0;
         let pendingQuestions = 0;
-        topicsSnapshot.docs.forEach((topicDoc) => {
+
+        // Calcular total de questões e questões pendentes usando a lógica correta
+        for (const topicDoc of topicsSnapshot.docs) {
           const topicData = topicDoc.data();
-          totalQuestions += topicData.totalQuestions || 0;
-          pendingQuestions += topicData.pendingQuestions || 0;
-        });
+          const questionsCollection = collection(
+            db,
+            "users",
+            user.uid,
+            "cargos",
+            cargoId,
+            "subjects",
+            doc.id,
+            "topics",
+            topicDoc.id,
+            "questions"
+          );
+          const questionsSnapshot = await getDocs(questionsCollection);
+
+          const pendingQuestionsCount = questionsSnapshot.docs.filter((questionDoc) => {
+            const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
+            return !nextReviewDate || nextReviewDate <= today;
+          }).length;
+
+          totalQuestions += topicData.totalQuestions || questionsSnapshot.docs.length;
+          pendingQuestions += pendingQuestionsCount;
+        }
 
         return {
           id: doc.id,

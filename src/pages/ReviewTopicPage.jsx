@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const ReviewTopicPage = () => {
   const { cargoId, materiaId } = useParams();
@@ -12,16 +13,26 @@ const ReviewTopicPage = () => {
   }, [cargoId, materiaId]);
 
   const fetchTopics = async () => {
-    const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.error("Usuário não autenticado.");
+      return;
+    }
+
+    // Ajuste para acessar os tópicos dentro de `users/{userId}/cargos/{cargoId}/subjects/{materiaId}/topics`
+    const topicsCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics");
     const topicsSnapshot = await getDocs(topicsCollection);
 
     const today = new Date();
     const topicsList = await Promise.all(
       topicsSnapshot.docs.map(async (doc) => {
         const topicData = doc.data();
-        const questionsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics", doc.id, "questions");
+        const questionsCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics", doc.id, "questions");
         const questionsSnapshot = await getDocs(questionsCollection);
 
+        // Calcular questões pendentes
         const pendingQuestions = questionsSnapshot.docs.filter((questionDoc) => {
           const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
           return !nextReviewDate || nextReviewDate <= today;

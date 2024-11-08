@@ -33,7 +33,12 @@ const MateriaPage = () => {
   };
 
   const fetchTopics = async () => {
-    const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    const topicsCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics");
     const topicsSnapshot = await getDocs(topicsCollection);
     const topicsList = topicsSnapshot.docs.map((doc) => ({
       id: doc.id,
@@ -43,13 +48,23 @@ const MateriaPage = () => {
   };
 
   const handleAdd = async (data) => {
-    await addDoc(collection(db, "cargos", cargoId, "subjects", materiaId, "topics"), data);
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    await addDoc(collection(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics"), data);
     setModalOpen(false);
     fetchTopics();
   };
 
   const handleUpdate = async (data) => {
-    const topicDoc = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", editingTopic.id);
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    const topicDoc = doc(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics", editingTopic.id);
     await updateDoc(topicDoc, data);
     setModalOpen(false);
     setEditingTopic(null);
@@ -57,7 +72,12 @@ const MateriaPage = () => {
   };
 
   const handleDelete = async (topicId) => {
-    const topicDoc = doc(db, "cargos", cargoId, "subjects", materiaId, "topics", topicId);
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    const topicDoc = doc(db, "users", user.uid, "cargos", cargoId, "subjects", materiaId, "topics", topicId);
     await deleteDoc(topicDoc);
     fetchTopics();
   };
@@ -94,9 +114,11 @@ const MateriaPage = () => {
           </div>
         ))}
       </div>
-      {userRole === "admin" && (<div className="flex justify-center mt-8">
-        <button onClick={openAddModal} className="bg-blue-500 text-white p-3 rounded">Adicionar Novo Tópico</button>
-      </div>)}
+      {userRole === "admin" && (
+        <div className="flex justify-center mt-8">
+          <button onClick={openAddModal} className="bg-blue-500 text-white p-3 rounded">Adicionar Novo Tópico</button>
+        </div>
+      )}
 
       <div className="flex justify-center mt-4">
         <button onClick={() => navigate(-1)} className="bg-gray-500 text-white p-3 rounded">Voltar</button>
