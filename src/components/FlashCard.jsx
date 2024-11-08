@@ -1,10 +1,30 @@
-// src/components/FlashCard.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import { getAuth } from "firebase/auth";
+import { db } from "../firebaseConfig";
+import { getDoc, doc } from "firebase/firestore";
 
 const FlashCard = ({ title, description, onEdit, onDelete }) => {
   const [flipped, setFlipped] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    fetchUserRole();
+  }, []);
+
+  const fetchUserRole = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserRole(userDoc.data().role);
+      }
+    }
+  };
 
   const handleFlip = () => {
     setFlipped(!flipped);
@@ -23,45 +43,23 @@ const FlashCard = ({ title, description, onEdit, onDelete }) => {
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* Frente do card */}
-        <div
-          className="absolute w-full h-full flex flex-col justify-center items-center bg-lightGray text-pureBlack rounded-lg p-4"
-          style={{ backfaceVisibility: "hidden" }}
-        >
+        <div className="absolute w-full h-full flex flex-col justify-center items-center bg-slate-200 text-pureBlack rounded-lg p-4" style={{ backfaceVisibility: "hidden" }}>
           <h2 className="text-lg font-bold text-center">{title}</h2>
 
-          {/* Ícones de edição e exclusão */}
-          <div className="absolute top-2 right-2 flex space-x-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Impede o flip ao clicar no botão
-                console.log("Edit button clicked"); // Log para depurar edição
-                onEdit();
-              }}
-              className="p-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-white"
-            >
-              <FaEdit />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Impede o flip ao clicar no botão
-                console.log("Delete button clicked"); // Log para depurar exclusão
-                onDelete();
-              }}
-              className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white"
-            >
-              <FaTrash />
-            </button>
-          </div>
+          {userRole === "admin" && (
+            <div className="absolute top-2 right-2 flex space-x-2">
+              <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-white">
+                <FaEdit />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white">
+                <FaTrash />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Verso do card */}
-        <div
-          className="absolute w-full h-full flex flex-col justify-center items-center bg-pureBlack text-white rounded-lg p-4"
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
+        <div className="absolute w-full h-full flex flex-col justify-center items-center bg-slate-400 text-white rounded-lg p-4" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
           <h2 className="text-lg font-semibold text-center">Resposta</h2>
           <p className="text-sm text-center">{description}</p>
         </div>

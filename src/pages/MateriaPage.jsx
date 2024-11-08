@@ -1,21 +1,36 @@
-// src/pages/MateriaPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import TopicModal from "../components/TopicModal";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import { getAuth } from "firebase/auth";
 
 const MateriaPage = () => {
   const { cargoId, materiaId } = useParams();
   const [topics, setTopics] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    fetchUserRole();
     fetchTopics();
   }, [cargoId, materiaId]);
+
+  const fetchUserRole = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserRole(userDoc.data().role);
+      }
+    }
+  };
 
   const fetchTopics = async () => {
     const topicsCollection = collection(db, "cargos", cargoId, "subjects", materiaId, "topics");
@@ -66,26 +81,25 @@ const MateriaPage = () => {
             <Link to={`/cargo/${cargoId}/materia/${materiaId}/topico/${topic.id}`} className="text-lg font-semibold text-pureBlack">
               {topic.title}
             </Link>
-            <div className="flex space-x-2">
-              <button onClick={() => openEditModal(topic)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
-                <FaEdit />
-              </button>
-              <button onClick={() => handleDelete(topic.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
-                <FaTrash />
-              </button>
-            </div>
+            {userRole === "admin" && (
+              <div className="flex space-x-2">
+                <button onClick={() => openEditModal(topic)} className="p-2 rounded-full bg-yellow-400 text-white hover:bg-yellow-500">
+                  <FaEdit />
+                </button>
+                <button onClick={() => handleDelete(topic.id)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
+                  <FaTrash />
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <div className="flex justify-center mt-8">
+      {userRole === "admin" && (<div className="flex justify-center mt-8">
         <button onClick={openAddModal} className="bg-blue-500 text-white p-3 rounded">Adicionar Novo Tópico</button>
-      </div>
-      
-      {/* Botão Voltar */}
+      </div>)}
+
       <div className="flex justify-center mt-4">
-        <button onClick={() => navigate(-1)} className="bg-gray-500 text-white p-3 rounded">
-          Voltar
-        </button>
+        <button onClick={() => navigate(-1)} className="bg-gray-500 text-white p-3 rounded">Voltar</button>
       </div>
 
       <TopicModal

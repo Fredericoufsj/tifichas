@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getDoc, doc, collection, getDocs, deleteDoc, updateDoc } from "firebase/firestore";
 import FlashCard from "../components/FlashCard";
 import AddQuestionForm from "../components/AddQuestionForm";
 
@@ -13,10 +14,28 @@ const TopicPage = () => {
   const [editFront, setEditFront] = useState("");
   const [editVerso, setEditVerso] = useState("");
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     fetchQuestions();
   }, [cargoId, materiaId, topicoId]);
+
+  useEffect(() => {
+    fetchUserRole();
+  }, []);
+
+  const fetchUserRole = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserRole(userDoc.data().role);
+      }
+    }
+  };
 
   const fetchQuestions = async () => {
     const questionsCollection = collection(
@@ -149,14 +168,14 @@ const TopicPage = () => {
         </div>
       )}
 
-      <div className="flex justify-center mt-8">
+      {userRole === "admin" && (<div className="flex justify-center mt-8">
         <button
           onClick={() => setShowForm(!showForm)}
           className="bg-blue-500 text-white p-3 rounded"
         >
           {showForm ? "Cancelar" : "Adicionar Nova Questão"}
         </button>
-      </div>
+      </div>)}
 
       {showForm && (
         <div className="mt-8 flex justify-center">
