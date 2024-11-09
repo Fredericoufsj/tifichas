@@ -127,7 +127,6 @@ const TopicPage = () => {
     setShowForm(false);
     setShowSuccessAlert(true);
 
-    // Ocultar o alerta após 3 segundos
     setTimeout(() => {
       setShowSuccessAlert(false);
     }, 3000);
@@ -196,21 +195,25 @@ const TopicPage = () => {
 
       {userRole === "admin" && (
         <div className="flex justify-center mt-8">
-          <button onClick={() => setShowForm(!showForm)} className="bg-blue-500 text-white p-3 rounded">
-            {showForm ? "Cancelar" : "Adicionar Nova Questão"}
+          <button onClick={() => setShowForm(true)} className="bg-blue-500 text-white p-3 rounded">
+            Adicionar Nova Questão
           </button>
         </div>
       )}
 
+      {/* Modal de adição de questão */}
       {showForm && (
-        <div className="mt-8 flex justify-center">
-          <AddQuestionForm
-            cargoId={cargoId}
-            materiaId={materiaId}
-            topicoId={topicoId}
-            onQuestionAdded={handleQuestionAdded}
-          />
-        </div>
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowForm(false)}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <AddQuestionForm
+              cargoId={cargoId}
+              materiaId={materiaId}
+              topicoId={topicoId}
+              onQuestionAdded={handleQuestionAdded}
+            />
+          </div>
+        </>
       )}
 
       <div className="flex justify-center mt-4">
