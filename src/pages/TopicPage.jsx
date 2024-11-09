@@ -13,8 +13,9 @@ const TopicPage = () => {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [editFront, setEditFront] = useState("");
   const [editVerso, setEditVerso] = useState("");
-  const navigate = useNavigate();
   const [userRole, setUserRole] = useState(null);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserQuestions();
@@ -122,9 +123,28 @@ const TopicPage = () => {
     }
   };
 
+  const handleQuestionAdded = () => {
+    setShowForm(false);
+    setShowSuccessAlert(true);
+
+    // Ocultar o alerta após 3 segundos
+    setTimeout(() => {
+      setShowSuccessAlert(false);
+    }, 3000);
+
+    fetchUserQuestions();
+  };
+
   return (
     <div className="min-h-screen bg-lightGray p-6">
       <h2 className="text-3xl font-bold text-center">Perguntas</h2>
+
+      {/* Alerta de sucesso */}
+      {showSuccessAlert && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg">
+          <strong>Questão adicionada com sucesso!</strong>
+        </div>
+      )}
 
       <div className="mt-8 flex flex-wrap justify-center gap-6">
         {questions.map((question) => (
@@ -188,7 +208,7 @@ const TopicPage = () => {
             cargoId={cargoId}
             materiaId={materiaId}
             topicoId={topicoId}
-            onQuestionAdded={fetchUserQuestions}
+            onQuestionAdded={handleQuestionAdded}
           />
         </div>
       )}
