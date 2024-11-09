@@ -20,60 +20,17 @@ const ReviewPage = () => {
       return;
     }
 
-    // Caminho ajustado para acessar `users/{userId}/cargos`
-    const cargosCollection = collection(db, "users", user.uid, "cargos");
-    const cargosSnapshot = await getDocs(cargosCollection);
+    try {
+      // Caminho ajustado para acessar `users/{userId}/cargos`
+      const cargosCollection = collection(db, "users", user.uid, "cargos");
+      const cargosSnapshot = await getDocs(cargosCollection);
 
-    const today = new Date();
-    const cargosList = await Promise.all(
-      cargosSnapshot.docs.map(async (doc) => {
+      const cargosList = cargosSnapshot.docs.map((doc) => {
         const cargoData = doc.data();
-        const subjectsCollection = collection(db, "users", user.uid, "cargos", doc.id, "subjects");
-        const subjectsSnapshot = await getDocs(subjectsCollection);
 
-        let totalQuestions = 0;
-        let pendingQuestions = 0;
-
-        // Calcular total de questões e questões pendentes
-        for (const subjectDoc of subjectsSnapshot.docs) {
-          const topicsCollection = collection(
-            db,
-            "users",
-            user.uid,
-            "cargos",
-            doc.id,
-            "subjects",
-            subjectDoc.id,
-            "topics"
-          );
-          const topicsSnapshot = await getDocs(topicsCollection);
-
-          for (const topicDoc of topicsSnapshot.docs) {
-            const topicData = topicDoc.data();
-            const questionsCollection = collection(
-              db,
-              "users",
-              user.uid,
-              "cargos",
-              doc.id,
-              "subjects",
-              subjectDoc.id,
-              "topics",
-              topicDoc.id,
-              "questions"
-            );
-            const questionsSnapshot = await getDocs(questionsCollection);
-
-            // Filtragem para calcular questões pendentes
-            const pendingQuestionsCount = questionsSnapshot.docs.filter((questionDoc) => {
-              const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
-              return !nextReviewDate || nextReviewDate <= today;
-            }).length;
-
-            totalQuestions += topicData.totalQuestions || questionsSnapshot.docs.length;
-            pendingQuestions += pendingQuestionsCount;
-          }
-        }
+        // Usando os campos `totalQuestions` e `pendingQuestions` agregados
+        const totalQuestions = cargoData.totalQuestions || 0;
+        const pendingQuestions = cargoData.pendingQuestions || 0;
 
         return {
           id: doc.id,
@@ -81,10 +38,12 @@ const ReviewPage = () => {
           totalQuestions,
           pendingQuestions,
         };
-      })
-    );
+      });
 
-    setCargos(cargosList);
+      setCargos(cargosList);
+    } catch (error) {
+      console.error("Erro ao buscar cargos:", error);
+    }
   };
 
   return (

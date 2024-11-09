@@ -21,45 +21,17 @@ const ReviewMateriaPage = () => {
       return;
     }
 
-    // Ajuste para acessar as matérias dentro de `users/{userId}/cargos/{cargoId}/subjects`
-    const materiasCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects");
-    const materiasSnapshot = await getDocs(materiasCollection);
+    try {
+      // Acessando as matérias diretamente dentro de `users/{userId}/cargos/{cargoId}/subjects`
+      const materiasCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects");
+      const materiasSnapshot = await getDocs(materiasCollection);
 
-    const today = new Date();
-    const materiasList = await Promise.all(
-      materiasSnapshot.docs.map(async (doc) => {
+      const materiasList = materiasSnapshot.docs.map((doc) => {
         const materiaData = doc.data();
-        const topicsCollection = collection(db, "users", user.uid, "cargos", cargoId, "subjects", doc.id, "topics");
-        const topicsSnapshot = await getDocs(topicsCollection);
 
-        let totalQuestions = 0;
-        let pendingQuestions = 0;
-
-        // Calcular total de questões e questões pendentes usando a lógica correta
-        for (const topicDoc of topicsSnapshot.docs) {
-          const topicData = topicDoc.data();
-          const questionsCollection = collection(
-            db,
-            "users",
-            user.uid,
-            "cargos",
-            cargoId,
-            "subjects",
-            doc.id,
-            "topics",
-            topicDoc.id,
-            "questions"
-          );
-          const questionsSnapshot = await getDocs(questionsCollection);
-
-          const pendingQuestionsCount = questionsSnapshot.docs.filter((questionDoc) => {
-            const nextReviewDate = questionDoc.data().nextReview ? questionDoc.data().nextReview.toDate() : null;
-            return !nextReviewDate || nextReviewDate <= today;
-          }).length;
-
-          totalQuestions += topicData.totalQuestions || questionsSnapshot.docs.length;
-          pendingQuestions += pendingQuestionsCount;
-        }
+        // Utilizando os campos agregados `totalQuestions` e `pendingQuestions`
+        const totalQuestions = materiaData.totalQuestions || 0;
+        const pendingQuestions = materiaData.pendingQuestions || 0;
 
         return {
           id: doc.id,
@@ -67,10 +39,12 @@ const ReviewMateriaPage = () => {
           totalQuestions,
           pendingQuestions,
         };
-      })
-    );
+      });
 
-    setMaterias(materiasList);
+      setMaterias(materiasList);
+    } catch (error) {
+      console.error("Erro ao buscar matérias:", error);
+    }
   };
 
   return (
