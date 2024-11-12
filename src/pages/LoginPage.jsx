@@ -20,10 +20,10 @@ const LoginPage = () => {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        // Cria um novo documento para o usuário com permissão "viewer"
+        // Cria um novo documento para o usuário com permissão "admin"
         await setDoc(userDocRef, {
           email: user.email,
-          role: "viewer", // Define o papel padrão como "viewer"
+          role: "admin", // Define o papel padrão como "admin"
         });
       }
 

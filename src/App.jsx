@@ -54,10 +54,12 @@ function App() {
           </div>
         </>
       ) : (
+        <div className="flex-1">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/login" />} /> {/* Redireciona rotas desconhecidas para a página de login */}
         </Routes>
+        </div>
       )}
     </div>
   );
